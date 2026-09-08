@@ -11,6 +11,9 @@
 // Helper function to get the module base address
 uintptr_t il2cppi_get_base_address();
 
+// Helper function to get exported function address from GameAssembly.dll
+void* il2cppi_get_proc_address(const char* procName);
+
 // Helper function to append text to a file
 void il2cppi_log_write(std::string text);
 

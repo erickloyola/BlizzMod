@@ -2,9 +2,6 @@
 
 #include "pch-il2cpp.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
 #include "il2cpp-appdata.h"
 #include "il2cpp-init.h"
 #include "helpers.h"
@@ -35,13 +32,12 @@ void init_il2cpp()
 {
 	// Get base address of IL2CPP module
 	uintptr_t baseAddress = il2cppi_get_base_address();
-	HMODULE hGameAssembly = (HMODULE)baseAddress;
 
 	using namespace app;
 
-	// Define IL2CPP API function addresses dynamically via GetProcAddress with fallback
+	// Define IL2CPP API function addresses dynamically via il2cppi_get_proc_address with fallback
 	#define DO_API(r, n, p) do { \
-		n = (r (*) p)GetProcAddress(hGameAssembly, #n); \
+		n = (r (*) p)il2cppi_get_proc_address(#n); \
 		if (!n) { \
 			n = (r (*) p)(baseAddress + n ## _ptr); \
 		} \

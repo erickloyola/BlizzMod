@@ -16,6 +16,15 @@ uintptr_t il2cppi_get_base_address() {
     return (uintptr_t) GetModuleHandleW(L"GameAssembly.dll");
 }
 
+// Helper function to get exported function address from GameAssembly.dll
+void* il2cppi_get_proc_address(const char* procName) {
+    static HMODULE hGameAssembly = (HMODULE)il2cppi_get_base_address();
+    if (!hGameAssembly) {
+        hGameAssembly = (HMODULE)il2cppi_get_base_address();
+    }
+    return (void*)GetProcAddress(hGameAssembly, procName);
+}
+
 // Helper function to append text to a file
 void il2cppi_log_write(std::string text) {
     HANDLE hfile = CreateFileW(LOG_FILE, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
