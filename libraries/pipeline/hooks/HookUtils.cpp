@@ -7,18 +7,18 @@
 
 namespace HookUtils {
     PVOID ResolveMethod(const char* assemblyName, const char* namespaze, const char* className, const char* methodName, int argsCount) {
-        if (!app::il2cpp_domain_get || !app::il2cpp_domain_assembly_open || !app::il2cpp_assembly_get_image || !app::il2cpp_class_from_name || !app::il2cpp_class_get_method_from_name) {
+        if (!il2cpp_domain_get || !il2cpp_domain_assembly_open || !il2cpp_assembly_get_image || !il2cpp_class_from_name || !il2cpp_class_get_method_from_name) {
             return nullptr;
         }
-        app::Il2CppDomain* domain = app::il2cpp_domain_get();
+        Il2CppDomain* domain = il2cpp_domain_get();
         if (!domain) return nullptr;
-        const app::Il2CppAssembly* assembly = app::il2cpp_domain_assembly_open(domain, assemblyName);
+        const Il2CppAssembly* assembly = il2cpp_domain_assembly_open(domain, assemblyName);
         if (!assembly) return nullptr;
-        const app::Il2CppImage* image = app::il2cpp_assembly_get_image(assembly);
+        const Il2CppImage* image = il2cpp_assembly_get_image(assembly);
         if (!image) return nullptr;
-        app::Il2CppClass* klass = app::il2cpp_class_from_name(image, namespaze, className);
+        Il2CppClass* klass = il2cpp_class_from_name(image, namespaze, className);
         if (!klass) return nullptr;
-        const app::MethodInfo* method = app::il2cpp_class_get_method_from_name(klass, methodName, argsCount);
+        const MethodInfo* method = il2cpp_class_get_method_from_name(klass, methodName, argsCount);
         if (!method) return nullptr;
         return (PVOID)method->methodPointer;
     }
