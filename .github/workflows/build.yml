@@ -18,7 +18,7 @@ jobs:
 
       - name: Build Release x64
         run: |
-          msbuild BlizzMod.sln /p:Configuration=Release /p:Platform=x64 /p:PreferredToolArchitecture=x64
+          msbuild BlizzMod.sln /p:Configuration=Release /p:Platform=x64 /p:PreferredToolArchitecture=x64 -m
 
       - name: Prepare Artifacts
         shell: pwsh
