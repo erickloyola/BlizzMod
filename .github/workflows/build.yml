@@ -2,7 +2,7 @@ name: Build BlizzMod
 
 on:
   push:
-    branches: [ master, main ]
+    branches: [ master, main, testes, dev ]
   workflow_dispatch:
 
 jobs:
