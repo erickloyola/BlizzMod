@@ -72,6 +72,34 @@ void Run(LPVOID lpParam)
 		std::cout << "[ERROR] IL2CPP Domain Not Found!" << std::endl;
 	}
 
+	// Wait for Assembly-CSharp to be loaded by Unity engine
+	std::cout << "[INFO] Waiting for assemblies to load..." << std::endl;
+	if (_domain) {
+		for (int i = 0; i < 40; i++) {
+			size_t count = 0;
+			if (il2cpp_domain_get_assemblies) {
+				const Il2CppAssembly** assemblies = il2cpp_domain_get_assemblies(_domain, &count);
+				if (assemblies && count > 0) {
+					bool found = false;
+					for (size_t a = 0; a < count; a++) {
+						const Il2CppImage* img = il2cpp_assembly_get_image(assemblies[a]);
+						if (!img) continue;
+						const char* imgName = il2cpp_image_get_name ? il2cpp_image_get_name(img) : nullptr;
+						if (imgName && strstr(imgName, "Assembly-CSharp")) {
+							found = true;
+							break;
+						}
+					}
+					if (found) {
+						std::cout << "[INFO] Target assemblies loaded (" << count << " assemblies found)." << std::endl;
+						break;
+					}
+				}
+			}
+			Sleep(500);
+		}
+	}
+
 	DetourInitilization();
 
 	hUnloadEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
