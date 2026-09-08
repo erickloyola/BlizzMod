@@ -18,7 +18,7 @@ using namespace HookUtils;
 float dCalculateBaseDamage(PlayerAttributes* __this, UltimatePlayerController_AttackLevel__Enum attackLevel, MethodInfo* method) {
     float result = PlayerAttributes_CalculateBaseDamage(__this, attackLevel, method);
     std::cout << "[HOOK] PlayerAttributes_CalculateBaseDamage result: " << result << std::endl;
-    return result;
+    return result * 10.0f;
 }
 
 float dCalculateCritChance(PlayerAttributes* __this, float oppChallengeRating, MethodInfo* method) {
