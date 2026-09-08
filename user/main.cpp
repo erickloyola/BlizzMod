@@ -75,7 +75,7 @@ void Run(LPVOID lpParam)
 	// Wait for Assembly-CSharp to be loaded by Unity engine
 	std::cout << "[INFO] Waiting for assemblies to load..." << std::endl;
 	if (_domain) {
-		for (int i = 0; i < 40; i++) {
+		for (int i = 0; i < 60; i++) {
 			size_t count = 0;
 			if (il2cpp_domain_get_assemblies) {
 				const Il2CppAssembly** assemblies = il2cpp_domain_get_assemblies(_domain, &count);
@@ -85,13 +85,19 @@ void Run(LPVOID lpParam)
 						const Il2CppImage* img = il2cpp_assembly_get_image(assemblies[a]);
 						if (!img) continue;
 						const char* imgName = il2cpp_image_get_name ? il2cpp_image_get_name(img) : nullptr;
-						if (imgName && strstr(imgName, "Assembly-CSharp")) {
-							found = true;
-							break;
+						if (imgName) {
+							std::string s = imgName;
+							if (s.length() > 4 && s.substr(s.length() - 4) == ".dll") {
+								s = s.substr(0, s.length() - 4);
+							}
+							if (_stricmp(s.c_str(), "Assembly-CSharp") == 0) {
+								found = true;
+								std::cout << "[INFO] Target assembly loaded: " << imgName << " (" << count << " assemblies found)." << std::endl;
+								break;
+							}
 						}
 					}
 					if (found) {
-						std::cout << "[INFO] Target assemblies loaded (" << count << " assemblies found)." << std::endl;
 						break;
 					}
 				}
@@ -99,6 +105,7 @@ void Run(LPVOID lpParam)
 			Sleep(500);
 		}
 	}
+	Sleep(1000);
 
 	DetourInitilization();
 

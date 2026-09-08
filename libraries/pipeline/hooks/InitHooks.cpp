@@ -560,9 +560,9 @@ void DetourInitilization() {
         PVOID pTarget = HookUtils::ResolveMethod(asmName, ns, cls, method, argc); \
         if (pTarget) { \
             fnVar = (decltype(fnVar))pTarget; \
-            HookFunction(reinterpret_cast<PVOID*>(&fnVar), detourFn, #cls "_" method); \
+            HookFunction(reinterpret_cast<PVOID*>(&fnVar), detourFn, cls "_" method); \
         } else { \
-            std::cout << "[INFO]: Method " #cls "_" method " not found, skipping hook." << std::endl; \
+            std::cout << "[INFO]: Method " << cls << "_" << method << " not found, skipping hook." << std::endl; \
         } \
     } while (0)
 
