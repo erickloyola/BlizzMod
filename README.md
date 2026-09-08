@@ -1,11 +1,54 @@
-PLACEHOLDER README:
+# BlizzMod - Mod Menu & Modloader para Marvel Contest of Champions
 
-BlizzMod is a modloader meant to expose relevant IL2CPP functions in Marvel Contest of Champions. In its current state it works, but all functions are located in InitHooks.cpp. A todo item is separating them into cleaner classes and exposing them in API form for actual mods to be written.
+Repositório mantido por [erickloyola](https://github.com/erickloyola/BlizzMod) com suporte total a Linux (Proton/Steam) e Windows, renderização em Direct3D 11, interface gráfica ImGui acionada por **F12**, hooks dinâmicos de IL2CPP e combate 100% estável.
 
-I have not included a precompiled binary in the releases yet becauses there are no mods. In order to create a mod, you will need to edit the project directly. You can do that by cloning the repository and editing the functions located in InitHooks.cpp. Soon this repository will be a modloader only and will not need to be edited and I will generate precompiled binaries.
+---
 
-Please check back for the installer project if you are having trouble with Easy Anti Cheat. The patch will be included in the installer, and I don't want to include the patch here. If you are testing the modloader before it's made, send me a message and I'll be happy to tell you how to fix it. It's simple and takes about 5 seconds to do, anyone with half a brain can work around it.
+## 🚀 Status da Versão
+* **Versão Estável**: [`v1.0-stable`](https://github.com/erickloyola/BlizzMod/releases/tag/v1.0-stable) (**100% Funcional**)
+* **Backend Gráfico**: Direct3D 11 com ImGui
+* **Tecla de Atalho**: `F12` (Abrir/Fechar Menu)
+* **Compatibilidade**: Proton 9 / GE-Proton / Windows 10/11
 
-Once you have compiled the project, check the launcher project for how to inject: https://github.com/blizzard25/BlizzModLauncher
+---
 
-TEMPORARY EASY ANTI-CHEAT BYPASS: If you are still looking for a solution to the EOS bypass, the simplest way to bypass is to go into your environment variables, select "New System Variable", and then add "EOS_USE_ANTICHEATCLIENTNULL" with a variable value of 1. This is essentially a debug mode for easy anti cheat, and if not explicitly set (MCOC does not have this explicitly set) allows you to bypass all runtime EOS checks. Now that I've included this publicly, I can't say for how long this will be available, but until i post the full solution, this will work until they choose to fix it. Tested 1/9/26. Be advised if you have other games that use Easy Anti Cheat that check for this environment variable, you will be unable to play these games unless you remove or edit the variable to 0
+## 📚 Guias Rápidos
+
+* 📖 **[Guia de Instalação Pós-Formatação](./GUIA_INSTALACAO_POS_FORMATACAO.md)**
+  *Passo a passo completo de como instalar o mod em um computador formatado ou em uma máquina nova em apenas 3 minutos.*
+
+* ⚙️ **[Guia Completo de Métodos de Compilação](./GUIA_COMPILACAO.md)**
+  *Como compilar usando o script automatizado `./atualizar.sh`, Docker local com MSVC, MinGW-w64 ou Visual Studio nativo.*
+
+---
+
+## ⚡ Como Jogar (Instalação Rápida no Linux)
+
+1. Nas propriedades do jogo na Steam, adicione em **Opções de Inicialização**:
+   ```bash
+   WINEDLLOVERRIDES="version=n,b" %command% -force-d3d11
+   ```
+2. Baixe a DLL estável com o comando no terminal:
+   ```bash
+   curl -L -o "$HOME/.local/share/Steam/steamapps/common/Marvel Contest of Champions/version.dll" https://github.com/erickloyola/BlizzMod/releases/download/v1.0-stable/version.dll
+   ```
+3. Inicie o jogo pela Steam e aperte **F12**!
+
+---
+
+## 🛠️ Como Atualizar / Modificar o Código
+
+Após fazer alterações nos arquivos de código C++:
+```bash
+./atualizar.sh "minhas alterações"
+```
+O script fará o commit, envio para o GitHub, compilação em nuvem multi-core e substituição automática do arquivo na pasta do jogo.
+
+---
+
+## 🛡️ Notas sobre Easy Anti-Cheat (EAC/EOS)
+Caso necessite contornar validações do EOS, configure a variável de ambiente:
+```bash
+EOS_USE_ANTICHEATCLIENTNULL=1
+```
+*(No Linux, você pode adicionar diretamente antes do comando na Steam: `EOS_USE_ANTICHEATCLIENTNULL=1 WINEDLLOVERRIDES="version=n,b" %command% -force-d3d11`).*
