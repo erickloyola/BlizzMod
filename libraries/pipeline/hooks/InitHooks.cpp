@@ -18,7 +18,7 @@ using namespace HookUtils;
 float dCalculateBaseDamage(PlayerAttributes* __this, UltimatePlayerController_AttackLevel__Enum attackLevel, MethodInfo* method) {
     float result = PlayerAttributes_CalculateBaseDamage(__this, attackLevel, method);
     std::cout << "[HOOK] PlayerAttributes_CalculateBaseDamage result: " << result << std::endl;
-    return result * 10.0f;
+    return result;
 }
 
 float dCalculateCritChance(PlayerAttributes* __this, float oppChallengeRating, MethodInfo* method) {
@@ -61,7 +61,7 @@ StatAttribute* dGetStatAttribute(PlayerAttributes* __this, String* attributeName
 float dget_Armor(PlayerAttributes* __this, MethodInfo* method) {
     float result = PlayerAttributes_get_Armor(__this, method);
     std::cout << "[HOOK] PlayerAttributes_get_Armor result: " << result << std::endl;
-    return result;
+    return result 10.0f;
 }
 
 bool dDamageResolver_CanPerfectBlock(PlayerAttributes* __this, MethodInfo* method) {
