@@ -9,6 +9,107 @@
 
 namespace HookUtils {
 
+    static Il2CppClass* SafeClassFromName(const Il2CppImage* image, const char* namespaze, const char* className) {
+        if (!il2cpp_class_from_name || !image || !className) return nullptr;
+        __try {
+            const char* ns = (namespaze && *namespaze) ? namespaze : "";
+            return il2cpp_class_from_name(image, ns, className);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static size_t SafeImageGetClassCount(const Il2CppImage* image) {
+        if (!il2cpp_image_get_class_count || !image) return 0;
+        __try {
+            return il2cpp_image_get_class_count(image);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return 0;
+        }
+    }
+
+    static const Il2CppClass* SafeImageGetClass(const Il2CppImage* image, size_t index) {
+        if (!il2cpp_image_get_class || !image) return nullptr;
+        __try {
+            return il2cpp_image_get_class(image, index);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static const char* SafeClassGetName(Il2CppClass* klass) {
+        if (!il2cpp_class_get_name || !klass) return nullptr;
+        __try {
+            return il2cpp_class_get_name(klass);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static const char* SafeClassGetNamespace(Il2CppClass* klass) {
+        if (!il2cpp_class_get_namespace || !klass) return nullptr;
+        __try {
+            return il2cpp_class_get_namespace(klass);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static const MethodInfo* SafeClassGetMethodFromName(Il2CppClass* klass, const char* methodName, int argsCount) {
+        if (!il2cpp_class_get_method_from_name || !klass || !methodName) return nullptr;
+        __try {
+            return il2cpp_class_get_method_from_name(klass, methodName, argsCount);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static const MethodInfo* SafeClassGetMethods(Il2CppClass* klass, void** iter) {
+        if (!il2cpp_class_get_methods || !klass || !iter) return nullptr;
+        __try {
+            return il2cpp_class_get_methods(klass, iter);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static const char* SafeMethodGetName(const MethodInfo* method) {
+        if (!il2cpp_method_get_name || !method) return nullptr;
+        __try {
+            return il2cpp_method_get_name(method);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
+    static int SafeMethodGetParamCount(const MethodInfo* method) {
+        if (!il2cpp_method_get_param_count || !method) return -1;
+        __try {
+            return (int)il2cpp_method_get_param_count(method);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return -1;
+        }
+    }
+
+    static PVOID SafeGetMethodPointer(const MethodInfo* method) {
+        if (!method) return nullptr;
+        __try {
+            return (PVOID)method->methodPointer;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER) {
+            return nullptr;
+        }
+    }
+
     static bool MatchAssemblyName(const char* candidate, const char* target) {
         if (!candidate || !target) return false;
         std::string c = candidate;
@@ -59,31 +160,24 @@ namespace HookUtils {
     static Il2CppClass* FindClass(const Il2CppImage* image, const char* namespaze, const char* className) {
         if (!image || !className) return nullptr;
 
-        Il2CppClass* klass = nullptr;
-
-        // 1. Try il2cpp_class_from_name
-        if (il2cpp_class_from_name) {
-            klass = il2cpp_class_from_name(image, (namespaze && *namespaze) ? namespaze : "", className);
-            if (!klass && (!namespaze || !*namespaze)) {
-                klass = il2cpp_class_from_name(image, nullptr, className);
-            }
-        }
+        // 1. Try il2cpp_class_from_name safely
+        Il2CppClass* klass = SafeClassFromName(image, namespaze, className);
         if (klass) return klass;
 
         // 2. Iterate all classes in image
-        if (il2cpp_image_get_class_count && il2cpp_image_get_class && il2cpp_class_get_name) {
-            size_t numClasses = il2cpp_image_get_class_count(image);
-            for (size_t i = 0; i < numClasses; i++) {
-                const Il2CppClass* k = il2cpp_image_get_class(image, i);
-                if (!k) continue;
-                const char* cName = il2cpp_class_get_name(const_cast<Il2CppClass*>(k));
-                if (cName && strcmp(cName, className) == 0) {
-                    if (namespaze && *namespaze && il2cpp_class_get_namespace) {
-                        const char* cNs = il2cpp_class_get_namespace(const_cast<Il2CppClass*>(k));
-                        if (cNs && strcmp(cNs, namespaze) != 0) continue;
-                    }
-                    return const_cast<Il2CppClass*>(k);
+        size_t numClasses = SafeImageGetClassCount(image);
+        if (numClasses > 100000) numClasses = 100000;
+
+        for (size_t i = 0; i < numClasses; i++) {
+            const Il2CppClass* k = SafeImageGetClass(image, i);
+            if (!k) continue;
+            const char* cName = SafeClassGetName(const_cast<Il2CppClass*>(k));
+            if (cName && strcmp(cName, className) == 0) {
+                if (namespaze && *namespaze) {
+                    const char* cNs = SafeClassGetNamespace(const_cast<Il2CppClass*>(k));
+                    if (cNs && strcmp(cNs, namespaze) != 0) continue;
                 }
+                return const_cast<Il2CppClass*>(k);
             }
         }
 
@@ -93,31 +187,31 @@ namespace HookUtils {
     static const MethodInfo* FindMethod(Il2CppClass* klass, const char* methodName, int argsCount) {
         if (!klass || !methodName) return nullptr;
 
-        // 1. Try il2cpp_class_get_method_from_name if argsCount >= 0
-        if (argsCount >= 0 && il2cpp_class_get_method_from_name) {
-            const MethodInfo* m = il2cpp_class_get_method_from_name(klass, methodName, argsCount);
+        // 1. Try il2cpp_class_get_method_from_name safely if argsCount >= 0
+        if (argsCount >= 0) {
+            const MethodInfo* m = SafeClassGetMethodFromName(klass, methodName, argsCount);
             if (m) return m;
         }
 
-        // 2. Iterate methods of klass
-        if (il2cpp_class_get_methods && il2cpp_method_get_name) {
-            void* iter = nullptr;
-            const MethodInfo* fallbackByName = nullptr;
-            while (const MethodInfo* m = il2cpp_class_get_methods(klass, &iter)) {
-                const char* mName = il2cpp_method_get_name(m);
-                if (mName && strcmp(mName, methodName) == 0) {
-                    int pCount = il2cpp_method_get_param_count ? (int)il2cpp_method_get_param_count(m) : -1;
-                    if (argsCount < 0 || pCount == argsCount) {
-                        return m;
-                    }
-                    if (!fallbackByName) {
-                        fallbackByName = m;
-                    }
+        // 2. Iterate methods of klass safely
+        void* iter = nullptr;
+        const MethodInfo* fallbackByName = nullptr;
+        int safetyCounter = 0;
+        while (const MethodInfo* m = SafeClassGetMethods(klass, &iter)) {
+            if (++safetyCounter > 5000) break;
+            const char* mName = SafeMethodGetName(m);
+            if (mName && strcmp(mName, methodName) == 0) {
+                int pCount = SafeMethodGetParamCount(m);
+                if (argsCount < 0 || pCount == argsCount) {
+                    return m;
+                }
+                if (!fallbackByName) {
+                    fallbackByName = m;
                 }
             }
-            if (fallbackByName) {
-                return fallbackByName;
-            }
+        }
+        if (fallbackByName) {
+            return fallbackByName;
         }
 
         return nullptr;
@@ -159,7 +253,6 @@ namespace HookUtils {
                     if (!img || img == image) continue;
                     klass = FindClass(img, namespaze, className);
                     if (klass) {
-                        image = img;
                         break;
                     }
                 }
@@ -175,7 +268,7 @@ namespace HookUtils {
             return nullptr;
         }
 
-        return (PVOID)method->methodPointer;
+        return SafeGetMethodPointer(method);
     }
 
     bool HookFunction(PVOID* ppPointer, PVOID pDetour, const char* functionName) {
