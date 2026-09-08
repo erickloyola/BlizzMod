@@ -118,7 +118,7 @@ float dDamageResolver_CalculateTotalArmorRating(PlayerAttributes* __this, Method
 float dDamageResolver_CalculateDamageReceived_1(PlayerAttributes* __this, float damage, CharacterDB_MetaData_DamageType__Enum damageType, bool blocked, bool isCrit, PlayerAttributes* opponentAttributes, bool applyResistances, bool applyArmor, bool bypassPositiveDamageReduction, String* source, HitResult* hitResult, Buff_1* sourceBuff, MethodInfo* method) {
     float result = PlayerAttributes_DamageResolver_CalculateDamageReceived_1(__this, damage, damageType, blocked, isCrit, opponentAttributes, applyResistances, applyArmor, bypassPositiveDamageReduction, source, hitResult, sourceBuff, method);
     std::cout << "[HOOK] DamageReceived_1 result: " << result << std::endl;
-    return result * 1000.0f;
+    return result;
 }
 
 float dCalculateNegativeArmorRatingDamageReductionPercentage(PlayerAttributes* __this, float armorRating, MethodInfo* method) {
@@ -638,7 +638,8 @@ void DetourInitilization() {
     HOOK_METHOD_SAFE(UltimatePlayerController_InitCharacterScalersID, dInitCharacterScalersID, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitCharacterScalersID", 0);
     HOOK_METHOD_SAFE(UltimatePlayerController_OnInitPlayer, dOnInitPlayer, "Assembly-CSharp.dll", "", "UltimatePlayerController", "OnInitPlayer", 1);
     HOOK_METHOD_SAFE(UltimatePlayerController_InitAttributes, dInitAttributes, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitAttributes", 2);
-    HOOK_METHOD_SAFE(UltimatePlayerController_RegisterStatMods, dRegisterStatMods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterStatMods", 1);
+    // Disabled: Modern MCOC added ascentMods and masteryMods to RegisterStatMods signature, causing MethodAccessException & infinite loading screen
+    // HOOK_METHOD_SAFE(UltimatePlayerController_RegisterStatMods, dRegisterStatMods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterStatMods", 1);
     HOOK_METHOD_SAFE(UltimatePlayerController_RegisterGameplayStatmods, dRegisterGameplayStatmods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterGameplayStatmods", 1);
 
     // DraftBuffInfoPanel
@@ -729,7 +730,7 @@ void DetourUninitialization() {
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitCharacterScalersID), dInitCharacterScalersID, "UltimatePlayerController_InitCharacterScalersID");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_OnInitPlayer), dOnInitPlayer, "UltimatePlayerController_OnInitPlayer");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitAttributes), dInitAttributes, "UltimatePlayerController_InitAttributes");
-    UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterStatMods), dRegisterStatMods, "UltimatePlayerController_RegisterStatMods");
+    // UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterStatMods), dRegisterStatMods, "UltimatePlayerController_RegisterStatMods");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterGameplayStatmods), dRegisterGameplayStatmods, "UltimatePlayerController_RegisterGameplayStatmods");
     //UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_PlayerPos), dPlayerPos, "UltimatePlayerController_PlayerPos");
 
