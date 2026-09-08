@@ -45,14 +45,34 @@ void il2cppi_new_console() {
 }
 
 #if _MSC_VER >= 1920
+static bool IsValidIl2CppString(Il2CppString* str) {
+    if (!str) return false;
+    __try {
+        int32_t len = str->length;
+        if (len < 0 || len > 65536) return false;
+        if (len > 0) {
+            volatile Il2CppChar first = str->chars[0];
+            (void)first;
+        }
+        return true;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        return false;
+    }
+}
+
 // Helper function to convert Il2CppString to std::string
 std::string il2cppi_to_string(Il2CppString* str) {
-    std::u16string u16(reinterpret_cast<const char16_t*>(str->chars));
+    if (!IsValidIl2CppString(str) || str->length <= 0) {
+        return "";
+    }
+    std::u16string u16(reinterpret_cast<const char16_t*>(str->chars), str->length);
     return std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t>{}.to_bytes(u16);
 }
 
 // Helper function to convert System.String to std::string
 std::string il2cppi_to_string(app::String* str) {
+    if (!str) return "";
     return il2cppi_to_string(reinterpret_cast<Il2CppString*>(str));
 }
 #endif

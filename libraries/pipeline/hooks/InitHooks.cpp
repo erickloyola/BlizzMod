@@ -590,7 +590,8 @@ void DetourInitilization() {
     HOOK_METHOD_SAFE(PlayerAttributes_CalculateBaseManaGain, dCalculateBaseManaGain, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBaseManaGain", 1);
     HOOK_METHOD_SAFE(PlayerAttributes_CalculateBaseSupportManaGain, dCalculateBaseSupportManaGain, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBaseSupportManaGain", 1);
 
-    // UltimatePlayerController
+    // UltimatePlayerController hooks disabled: these are reverse-engineering logging hooks with invalid return types and null pointer vulnerabilities during battle
+    /*
     HOOK_METHOD_SAFE(UltimatePlayerController_OnBattleFightStart, dUltimatePlayerController_OnBattleFightStart, "Assembly-CSharp.dll", "", "UltimatePlayerController", "OnBattleFightStart", 0);
     HOOK_METHOD_SAFE(UltimatePlayerController_add_DamageReceived, dUltimatePlayerController_add_DamageReceived, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_DamageReceived", 1);
     HOOK_METHOD_SAFE(UltimatePlayerController_remove_DamageReceived, dUltimatePlayerController_remove_DamageReceived, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_DamageReceived", 1);
@@ -638,9 +639,8 @@ void DetourInitilization() {
     HOOK_METHOD_SAFE(UltimatePlayerController_InitCharacterScalersID, dInitCharacterScalersID, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitCharacterScalersID", 0);
     HOOK_METHOD_SAFE(UltimatePlayerController_OnInitPlayer, dOnInitPlayer, "Assembly-CSharp.dll", "", "UltimatePlayerController", "OnInitPlayer", 1);
     HOOK_METHOD_SAFE(UltimatePlayerController_InitAttributes, dInitAttributes, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitAttributes", 2);
-    // Disabled: Modern MCOC added ascentMods and masteryMods to RegisterStatMods signature, causing MethodAccessException & infinite loading screen
-    // HOOK_METHOD_SAFE(UltimatePlayerController_RegisterStatMods, dRegisterStatMods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterStatMods", 1);
     HOOK_METHOD_SAFE(UltimatePlayerController_RegisterGameplayStatmods, dRegisterGameplayStatmods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterGameplayStatmods", 1);
+    */
 
     // DraftBuffInfoPanel
     HOOK_METHOD_SAFE(DraftBuffInfoPanel_Set, dSet, "Assembly-CSharp.dll", "", "DraftBuffInfoPanel", "Set", 2);
@@ -682,7 +682,8 @@ void DetourUninitialization() {
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateBaseManaGain), dCalculateBaseManaGain, "BaseManaGain");
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateBaseSupportManaGain), dCalculateBaseSupportManaGain, "BaseSupportManaGain");
 
-    // UltimatePlayerController
+    // UltimatePlayerController unhooks disabled
+    /*
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_OnBattleFightStart), dUltimatePlayerController_OnBattleFightStart, "UltimatePlayerController_OnBattleFightStart");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_DamageReceived), dUltimatePlayerController_add_DamageReceived, "UltimatePlayerController_add_DamageReceived");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_DamageReceived), dUltimatePlayerController_remove_DamageReceived, "UltimatePlayerController_remove_DamageReceived");
@@ -733,6 +734,7 @@ void DetourUninitialization() {
     // UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterStatMods), dRegisterStatMods, "UltimatePlayerController_RegisterStatMods");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterGameplayStatmods), dRegisterGameplayStatmods, "UltimatePlayerController_RegisterGameplayStatmods");
     //UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_PlayerPos), dPlayerPos, "UltimatePlayerController_PlayerPos");
+    */
 
 
     // DraftBuffInfoPanel
