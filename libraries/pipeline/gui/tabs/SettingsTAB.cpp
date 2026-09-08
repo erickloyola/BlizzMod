@@ -1,4 +1,7 @@
-﻿#include "pch-il2cpp.h"
+#include "pch-il2cpp.h"
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <shellapi.h>
 #include "pipeline/gui/tabs/SettingsTAB.h"
 #include <imgui/imgui.h>
 #include "pipeline/gui/GUITheme.h" 
@@ -34,7 +37,7 @@ void SettingsTAB::Render()
 
         if (ImGui::Button("Repository"))
         {
-            app::Application_OpenURL(reinterpret_cast<app::String*>(il2cpp_string_new("https://github.com/blizzard25/BlizzMod")), nullptr);
+            ShellExecuteA(NULL, "open", "https://github.com/blizzard25/BlizzMod", NULL, NULL, SW_SHOWNORMAL);
         }
 
         ImGui::EndTabItem();

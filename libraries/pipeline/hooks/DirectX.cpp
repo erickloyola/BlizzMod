@@ -37,16 +37,15 @@ static cache_t s_Cache;
 
 ImVec2 DirectX::GetWindowSize()
 {
-	if (app::Screen_get_fullScreen(nullptr))
+	if (window)
 	{
 		RECT rect;
-		GetWindowRect(window, &rect);
-
-		return { (float)(rect.right - rect.left),  (float)(rect.bottom - rect.top) };
+		if (GetClientRect(window, &rect))
+		{
+			return { (float)(rect.right - rect.left), (float)(rect.bottom - rect.top) };
+		}
 	}
-
-	return { (float)app::Screen_get_width(nullptr), (float)app::Screen_get_height(nullptr) };
-
+	return { 1280.0f, 720.0f };
 }
 
 LRESULT __stdcall dWndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
@@ -120,7 +119,6 @@ HRESULT __stdcall dPresent(IDXGISwapChain* __this, UINT SyncInterval, UINT Flags
 			ImVec2 size = DirectX::GetWindowSize();
 			settings.ImGuiInitialized = true;
 			std::cout << "[INFO]: ImGui Initialized successfully!\n";
-			std::cout << "[INFO]: Fullscreen: " << app::Screen_get_fullScreen(nullptr) << std::endl;
 			std::cout << "[INFO]: DirectX Window Size: " << +size.x << "x" << +size.y << std::endl;
 		}
 		else {
