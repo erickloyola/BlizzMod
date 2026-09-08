@@ -124,7 +124,9 @@ HRESULT __stdcall dPresent(IDXGISwapChain* __this, UINT SyncInterval, UINT Flags
 			std::cout << "[INFO]: DirectX Window Size: " << +size.x << "x" << +size.y << std::endl;
 		}
 		else {
-			ReleaseSemaphore(DirectX::hRenderSemaphore, 1, NULL);
+			if (DirectX::hRenderSemaphore) {
+				ReleaseSemaphore(DirectX::hRenderSemaphore, 1, NULL);
+			}
 			return oPresent(__this, SyncInterval, Flags);
 		}
 	}

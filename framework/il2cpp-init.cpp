@@ -32,11 +32,17 @@ void init_il2cpp()
 {
 	// Get base address of IL2CPP module
 	uintptr_t baseAddress = il2cppi_get_base_address();
+	HMODULE hGameAssembly = (HMODULE)baseAddress;
 
 	using namespace app;
 
-	// Define IL2CPP API function addresses
-	#define DO_API(r, n, p) n = (r (*) p)(baseAddress + n ## _ptr)
+	// Define IL2CPP API function addresses dynamically via GetProcAddress with fallback
+	#define DO_API(r, n, p) do { \
+		n = (r (*) p)GetProcAddress(hGameAssembly, #n); \
+		if (!n) { \
+			n = (r (*) p)(baseAddress + n ## _ptr); \
+		} \
+	} while (0)
 	#include "il2cpp-api-functions.h"
 	#undef DO_API
 

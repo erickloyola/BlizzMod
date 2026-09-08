@@ -1,4 +1,4 @@
-﻿#include "pch-il2cpp.h"
+#include "pch-il2cpp.h"
 
 #include <Windows.h>
 #include "detours/detours.h"
@@ -586,87 +586,97 @@ void DetourInitilization() {
         return;
     }
 
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateBaseDamage), dCalculateBaseDamage, "PlayerAttributes_CalculateBaseDamage");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateCritChance), dCalculateCritChance, "PlayerAttributes_CalculateCritChance");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_get_CritRating), dget_CritRating, "PlayerAttributes_get_CritRating");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_GetPosition), dUltimatePlayerController_GetPosition, "UltimatePlayerController_GetPosition");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_Init), dInit, "PlayerAttributes_Init");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_GetStatAttribute), dGetStatAttribute, "PlayerAttributes_GetStatAttribute");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_get_Armor), dget_Armor, "PlayerAttributes_get_Armor");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CanPerfectBlock), dDamageResolver_CanPerfectBlock, "PlayerAttributes_DamageResolver_CanPerfectBlock");
+    #define HOOK_METHOD_SAFE(fnVar, detourFn, asmName, ns, cls, method, argc) do { \
+        PVOID pTarget = HookUtils::ResolveMethod(asmName, ns, cls, method, argc); \
+        if (pTarget) { \
+            fnVar = (decltype(fnVar))pTarget; \
+            HookFunction(reinterpret_cast<PVOID*>(&fnVar), detourFn, #cls "_" method); \
+        } else { \
+            std::cout << "[INFO]: Method " #cls "_" method " not found, skipping hook." << std::endl; \
+        } \
+    } while (0)
 
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateCritResistChance), dCalculateCritResistChance, "CalculateCritResistChance");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateDamageInflicted), dCalculateDamageInflicted, "CalculateDamageInflicted");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CalculateDamageReceived), dDamageResolver_CalculateDamageReceived, "DamageResolver_CalculateDamageReceived");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CalculatePositiveDamageReductionPercentage), dDamageResolver_CalculatePositiveDamageReductionPercentage, "PositiveDamageReductionPercentage");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CalculateNegativeDamageReductionPercentage), dDamageResolver_CalculateNegativeDamageReductionPercentage, "NegativeDamageReductionPercentage");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CalculateTotalResistanceRating), dDamageResolver_CalculateTotalResistanceRating, "TotalResistanceRating");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CalculateTotalArmorRating), dDamageResolver_CalculateTotalArmorRating, "TotalArmorRating");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_DamageResolver_CalculateDamageReceived_1), dDamageResolver_CalculateDamageReceived_1, "DamageReceived_1");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateNegativeArmorRatingDamageReductionPercentage), dCalculateNegativeArmorRatingDamageReductionPercentage, "NegativeArmorRatingReduction");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateCritDamage), dCalculateCritDamage, "CalculateCritDamage");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateArmorPenetrationPercentage), dCalculateArmorPenetrationPercentage, "ArmorPenetration");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateBlockProficiencyPercentage), dCalculateBlockProficiencyPercentage, "BlockProficiency");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateBaseManaGain), dCalculateBaseManaGain, "BaseManaGain");
-    HookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateBaseSupportManaGain), dCalculateBaseSupportManaGain, "BaseSupportManaGain");
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateBaseDamage, dCalculateBaseDamage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBaseDamage", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateCritChance, dCalculateCritChance, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateCritChance", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_get_CritRating, dget_CritRating, "Assembly-CSharp.dll", "", "PlayerAttributes", "get_CritRating", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_GetPosition, dUltimatePlayerController_GetPosition, "Assembly-CSharp.dll", "", "UltimatePlayerController", "GetPosition", 0);
+    HOOK_METHOD_SAFE(PlayerAttributes_Init, dInit, "Assembly-CSharp.dll", "", "PlayerAttributes", "Init", 4);
+    HOOK_METHOD_SAFE(PlayerAttributes_GetStatAttribute, dGetStatAttribute, "Assembly-CSharp.dll", "", "PlayerAttributes", "GetStatAttribute", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_get_Armor, dget_Armor, "Assembly-CSharp.dll", "", "PlayerAttributes", "get_Armor", 0);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CanPerfectBlock, dDamageResolver_CanPerfectBlock, "Assembly-CSharp.dll", "", "PlayerAttributes", "CanPerfectBlock", 0);
+
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateCritResistChance, dCalculateCritResistChance, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateCritResistChance", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateDamageInflicted, dCalculateDamageInflicted, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateDamageInflicted", 2);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CalculateDamageReceived, dDamageResolver_CalculateDamageReceived, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateDamageReceived", 3);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CalculatePositiveDamageReductionPercentage, dDamageResolver_CalculatePositiveDamageReductionPercentage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculatePositiveDamageReductionPercentage", 2);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CalculateNegativeDamageReductionPercentage, dDamageResolver_CalculateNegativeDamageReductionPercentage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateNegativeDamageReductionPercentage", 2);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CalculateTotalResistanceRating, dDamageResolver_CalculateTotalResistanceRating, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateTotalResistanceRating", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CalculateTotalArmorRating, dDamageResolver_CalculateTotalArmorRating, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateTotalArmorRating", 2);
+    HOOK_METHOD_SAFE(PlayerAttributes_DamageResolver_CalculateDamageReceived_1, dDamageResolver_CalculateDamageReceived_1, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateDamageReceived", 4);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateNegativeArmorRatingDamageReductionPercentage, dCalculateNegativeArmorRatingDamageReductionPercentage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateNegativeArmorRatingDamageReductionPercentage", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateCritDamage, dCalculateCritDamage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateCritDamage", 2);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateArmorPenetrationPercentage, dCalculateArmorPenetrationPercentage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateArmorPenetrationPercentage", 2);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateBlockProficiencyPercentage, dCalculateBlockProficiencyPercentage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBlockProficiencyPercentage", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateBaseManaGain, dCalculateBaseManaGain, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBaseManaGain", 1);
+    HOOK_METHOD_SAFE(PlayerAttributes_CalculateBaseSupportManaGain, dCalculateBaseSupportManaGain, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBaseSupportManaGain", 1);
 
     // UltimatePlayerController
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_OnBattleFightStart), dUltimatePlayerController_OnBattleFightStart, "UltimatePlayerController_OnBattleFightStart");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_DamageReceived), dUltimatePlayerController_add_DamageReceived, "UltimatePlayerController_add_DamageReceived");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_DamageReceived), dUltimatePlayerController_remove_DamageReceived, "UltimatePlayerController_remove_DamageReceived");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_HealReceived), dUltimatePlayerController_add_HealReceived, "UltimatePlayerController_add_HealReceived");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_HealReceived), dUltimatePlayerController_remove_HealReceived, "UltimatePlayerController_remove_HealReceived");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_HealthSet), dUltimatePlayerController_add_HealthSet, "UltimatePlayerController_add_HealthSet");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_HealthSet), dUltimatePlayerController_remove_HealthSet, "UltimatePlayerController_remove_HealthSet");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_PlayerDodged), dUltimatePlayerController_add_PlayerDodged, "UltimatePlayerController_add_PlayerDodged");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_PlayerDodged), dUltimatePlayerController_remove_PlayerDodged, "UltimatePlayerController_remove_PlayerDodged");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_PlayerInvulnerable), dUltimatePlayerController_add_PlayerInvulnerable, "UltimatePlayerController_add_PlayerInvulnerable");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_PlayerInvulnerable), dUltimatePlayerController_remove_PlayerInvulnerable, "UltimatePlayerController_remove_PlayerInvulnerable");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_PlayerBuffAdded), dUltimatePlayerController_add_PlayerBuffAdded, "UltimatePlayerController_add_PlayerBuffAdded");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_PlayerBuffAdded), dUltimatePlayerController_remove_PlayerBuffAdded, "UltimatePlayerController_remove_PlayerBuffAdded");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_PlayerBuffPauseChanged), dUltimatePlayerController_add_PlayerBuffPauseChanged, "UltimatePlayerController_add_PlayerBuffPauseChanged");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_PlayerBuffPauseChanged), dUltimatePlayerController_remove_PlayerBuffPauseChanged, "UltimatePlayerController_remove_PlayerBuffPauseChanged");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_LateBlockDetected), dUltimatePlayerController_add_LateBlockDetected, "UltimatePlayerController_add_LateBlockDetected");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_LateBlockDetected), dUltimatePlayerController_remove_LateBlockDetected, "UltimatePlayerController_remove_LateBlockDetected");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_OnBlockDetected), dUltimatePlayerController_add_OnBlockDetected, "UltimatePlayerController_add_OnBlockDetected");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_OnBlockDetected), dUltimatePlayerController_remove_OnBlockDetected, "UltimatePlayerController_remove_OnBlockDetected");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_OnUnblockDetected), dUltimatePlayerController_add_OnUnblockDetected, "UltimatePlayerController_add_OnUnblockDetected");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_OnUnblockDetected), dUltimatePlayerController_remove_OnUnblockDetected, "UltimatePlayerController_remove_OnUnblockDetected");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_add_OnComboChainReset), dUltimatePlayerController_add_OnComboChainReset, "UltimatePlayerController_add_OnComboChainReset");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_remove_OnComboChainReset), dUltimatePlayerController_remove_OnComboChainReset, "UltimatePlayerController_remove_OnComboChainReset");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_get_ToggleRunTutorialStatMod), dGetToggleRunTutorialStatMod, "UltimatePlayerController_get_ToggleRunTutorialStatMod");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_GetAttackLevelFromSpecial), dGetAttackLevelFromSpecial, "UltimatePlayerController_GetAttackLevelFromSpecial");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_IsBasicAttack), dIsBasicAttack, "UltimatePlayerController_IsBasicAttack");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_GetCustomStagePrefab), dGetCustomStagePrefab, "UltimatePlayerController_GetCustomStagePrefab");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_get_TelemetryBuffVariables), dGetTelemetryBuffVariables, "UltimatePlayerController_get_TelemetryBuffVariables");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_GetCurrentFXTriggerState), dGetCurrentFXTriggerState, "UltimatePlayerController_GetCurrentFXTriggerState");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RestartFXTriggers), dRestartFXTriggers, "UltimatePlayerController_RestartFXTriggers");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_SuspendAllFXTriggers), dSuspendAllFXTriggers, "UltimatePlayerController_SuspendAllFXTriggers");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_Awake), dAwake, "UltimatePlayerController_Awake");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_ApplyFresnelEffect), dApplyFresnelEffect, "UltimatePlayerController_ApplyFresnelEffect");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RemoveFresnelEffect), dRemoveFresnelEffect, "UltimatePlayerController_RemoveFresnelEffect");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_AddAndRefreshBoneScalar), dAddAndRefreshBoneScalar, "UltimatePlayerController_AddAndRefreshBoneScalar");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitializeBoneScalerBasePose), dInitializeBoneScalerBasePose, "UltimatePlayerController_InitializeBoneScalerBasePose");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_OnDestroy), dOnDestroy, "UltimatePlayerController_OnDestroy");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_AttachToEvents), dAttachToEvents, "UltimatePlayerController_AttachToEvents");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_DetachFromEvents), dDetachFromEvents, "UltimatePlayerController_DetachFromEvents");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_ResetComboTracker), dResetComboTracker, "UltimatePlayerController_ResetComboTracker");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitComboMetrics), dInitComboMetrics, "UltimatePlayerController_InitComboMetrics");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_Start), dStart, "UltimatePlayerController_Start");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_Reset), dReset, "UltimatePlayerController_Reset");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitPlayer), dInitPlayer, "UltimatePlayerController_InitPlayer");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitCharacterScalersID), dInitCharacterScalersID, "UltimatePlayerController_InitCharacterScalersID");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_OnInitPlayer), dOnInitPlayer, "UltimatePlayerController_OnInitPlayer");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_InitAttributes), dInitAttributes, "UltimatePlayerController_InitAttributes");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterStatMods), dRegisterStatMods, "UltimatePlayerController_RegisterStatMods");
-    HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_RegisterGameplayStatmods), dRegisterGameplayStatmods, "UltimatePlayerController_RegisterGameplayStatmods");
-    //HookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_PlayerPos), dPlayerPos, "UltimatePlayerController_PlayerPos");
-
+    HOOK_METHOD_SAFE(UltimatePlayerController_OnBattleFightStart, dUltimatePlayerController_OnBattleFightStart, "Assembly-CSharp.dll", "", "UltimatePlayerController", "OnBattleFightStart", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_DamageReceived, dUltimatePlayerController_add_DamageReceived, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_DamageReceived", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_DamageReceived, dUltimatePlayerController_remove_DamageReceived, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_DamageReceived", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_HealReceived, dUltimatePlayerController_add_HealReceived, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_HealReceived", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_HealReceived, dUltimatePlayerController_remove_HealReceived, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_HealReceived", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_HealthSet, dUltimatePlayerController_add_HealthSet, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_HealthSet", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_HealthSet, dUltimatePlayerController_remove_HealthSet, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_HealthSet", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_PlayerDodged, dUltimatePlayerController_add_PlayerDodged, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_PlayerDodged", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_PlayerDodged, dUltimatePlayerController_remove_PlayerDodged, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_PlayerDodged", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_PlayerInvulnerable, dUltimatePlayerController_add_PlayerInvulnerable, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_PlayerInvulnerable", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_PlayerInvulnerable, dUltimatePlayerController_remove_PlayerInvulnerable, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_PlayerInvulnerable", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_PlayerBuffAdded, dUltimatePlayerController_add_PlayerBuffAdded, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_PlayerBuffAdded", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_PlayerBuffAdded, dUltimatePlayerController_remove_PlayerBuffAdded, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_PlayerBuffAdded", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_PlayerBuffPauseChanged, dUltimatePlayerController_add_PlayerBuffPauseChanged, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_PlayerBuffPauseChanged", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_PlayerBuffPauseChanged, dUltimatePlayerController_remove_PlayerBuffPauseChanged, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_PlayerBuffPauseChanged", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_LateBlockDetected, dUltimatePlayerController_add_LateBlockDetected, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_LateBlockDetected", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_LateBlockDetected, dUltimatePlayerController_remove_LateBlockDetected, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_LateBlockDetected", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_OnBlockDetected, dUltimatePlayerController_add_OnBlockDetected, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_OnBlockDetected", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_OnBlockDetected, dUltimatePlayerController_remove_OnBlockDetected, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_OnBlockDetected", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_OnUnblockDetected, dUltimatePlayerController_add_OnUnblockDetected, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_OnUnblockDetected", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_OnUnblockDetected, dUltimatePlayerController_remove_OnUnblockDetected, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_OnUnblockDetected", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_add_OnComboChainReset, dUltimatePlayerController_add_OnComboChainReset, "Assembly-CSharp.dll", "", "UltimatePlayerController", "add_OnComboChainReset", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_remove_OnComboChainReset, dUltimatePlayerController_remove_OnComboChainReset, "Assembly-CSharp.dll", "", "UltimatePlayerController", "remove_OnComboChainReset", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_get_ToggleRunTutorialStatMod, dGetToggleRunTutorialStatMod, "Assembly-CSharp.dll", "", "UltimatePlayerController", "get_ToggleRunTutorialStatMod", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_GetAttackLevelFromSpecial, dGetAttackLevelFromSpecial, "Assembly-CSharp.dll", "", "UltimatePlayerController", "GetAttackLevelFromSpecial", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_IsBasicAttack, dIsBasicAttack, "Assembly-CSharp.dll", "", "UltimatePlayerController", "IsBasicAttack", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_GetCustomStagePrefab, dGetCustomStagePrefab, "Assembly-CSharp.dll", "", "UltimatePlayerController", "GetCustomStagePrefab", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_get_TelemetryBuffVariables, dGetTelemetryBuffVariables, "Assembly-CSharp.dll", "", "UltimatePlayerController", "get_TelemetryBuffVariables", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_GetCurrentFXTriggerState, dGetCurrentFXTriggerState, "Assembly-CSharp.dll", "", "UltimatePlayerController", "GetCurrentFXTriggerState", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_RestartFXTriggers, dRestartFXTriggers, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RestartFXTriggers", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_SuspendAllFXTriggers, dSuspendAllFXTriggers, "Assembly-CSharp.dll", "", "UltimatePlayerController", "SuspendAllFXTriggers", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_Awake, dAwake, "Assembly-CSharp.dll", "", "UltimatePlayerController", "Awake", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_ApplyFresnelEffect, dApplyFresnelEffect, "Assembly-CSharp.dll", "", "UltimatePlayerController", "ApplyFresnelEffect", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_RemoveFresnelEffect, dRemoveFresnelEffect, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RemoveFresnelEffect", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_AddAndRefreshBoneScalar, dAddAndRefreshBoneScalar, "Assembly-CSharp.dll", "", "UltimatePlayerController", "AddAndRefreshBoneScalar", 2);
+    HOOK_METHOD_SAFE(UltimatePlayerController_InitializeBoneScalerBasePose, dInitializeBoneScalerBasePose, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitializeBoneScalerBasePose", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_OnDestroy, dOnDestroy, "Assembly-CSharp.dll", "", "UltimatePlayerController", "OnDestroy", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_AttachToEvents, dAttachToEvents, "Assembly-CSharp.dll", "", "UltimatePlayerController", "AttachToEvents", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_DetachFromEvents, dDetachFromEvents, "Assembly-CSharp.dll", "", "UltimatePlayerController", "DetachFromEvents", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_ResetComboTracker, dResetComboTracker, "Assembly-CSharp.dll", "", "UltimatePlayerController", "ResetComboTracker", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_InitComboMetrics, dInitComboMetrics, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitComboMetrics", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_Start, dStart, "Assembly-CSharp.dll", "", "UltimatePlayerController", "Start", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_Reset, dReset, "Assembly-CSharp.dll", "", "UltimatePlayerController", "Reset", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_InitPlayer, dInitPlayer, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitPlayer", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_InitCharacterScalersID, dInitCharacterScalersID, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitCharacterScalersID", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_OnInitPlayer, dOnInitPlayer, "Assembly-CSharp.dll", "", "UltimatePlayerController", "OnInitPlayer", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_InitAttributes, dInitAttributes, "Assembly-CSharp.dll", "", "UltimatePlayerController", "InitAttributes", 2);
+    HOOK_METHOD_SAFE(UltimatePlayerController_RegisterStatMods, dRegisterStatMods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterStatMods", 1);
+    HOOK_METHOD_SAFE(UltimatePlayerController_RegisterGameplayStatmods, dRegisterGameplayStatmods, "Assembly-CSharp.dll", "", "UltimatePlayerController", "RegisterGameplayStatmods", 1);
 
     // DraftBuffInfoPanel
-    HookFunction(reinterpret_cast<PVOID*>(&DraftBuffInfoPanel_Set), dSet, "DraftBuffInfoPanel_Set");
-    HookFunction(reinterpret_cast<PVOID*>(&DraftBuffInfoPanel_SetCenteredView), dSetCenteredView, "DraftBuffInfoPanel_SetCenteredView");
-    HookFunction(reinterpret_cast<PVOID*>(&DraftBuffInfoPanel_SetSplitView), dSetSplitView, "DraftBuffInfoPanel_SetSplitView");
+    HOOK_METHOD_SAFE(DraftBuffInfoPanel_Set, dSet, "Assembly-CSharp.dll", "", "DraftBuffInfoPanel", "Set", 2);
+    HOOK_METHOD_SAFE(DraftBuffInfoPanel_SetCenteredView, dSetCenteredView, "Assembly-CSharp.dll", "", "DraftBuffInfoPanel", "SetCenteredView", 1);
+    HOOK_METHOD_SAFE(DraftBuffInfoPanel_SetSplitView, dSetSplitView, "Assembly-CSharp.dll", "", "DraftBuffInfoPanel", "SetSplitView", 2);
+
+    #undef HOOK_METHOD_SAFE
 
     DetourTransactionCommit();
 }
