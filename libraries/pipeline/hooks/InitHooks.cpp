@@ -61,7 +61,7 @@ StatAttribute* dGetStatAttribute(PlayerAttributes* __this, String* attributeName
 float dget_Armor(PlayerAttributes* __this, MethodInfo* method) {
     float result = PlayerAttributes_get_Armor(__this, method);
     std::cout << "[HOOK] PlayerAttributes_get_Armor result: " << result << std::endl;
-    return result 10.0f;
+    return result * 10.0f;
 }
 
 bool dDamageResolver_CanPerfectBlock(PlayerAttributes* __this, MethodInfo* method) {
