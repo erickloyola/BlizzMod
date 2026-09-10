@@ -4,7 +4,7 @@ Repositório mantido por [erickloyola](https://github.com/erickloyola/BlizzMod) 
 
 ---
 
-## 🚀 Status da Versão
+##  Status da Versão
 * **Versão Estável**: [`v1.0-stable`](https://github.com/erickloyola/BlizzMod/releases/tag/v1.0-stable) (**100% Funcional**)
 * **Backend Gráfico**: Direct3D 11 com ImGui
 * **Tecla de Atalho**: `F12` (Abrir/Fechar Menu)
@@ -12,7 +12,7 @@ Repositório mantido por [erickloyola](https://github.com/erickloyola/BlizzMod) 
 
 ---
 
-## 📚 Guias Rápidos
+##  Guias Rápidos
 
 * 📖 **[Guia de Instalação Pós-Formatação](./GUIA_INSTALACAO_POS_FORMATACAO.md)**
   *Passo a passo completo de como instalar o mod em um computador formatado ou em uma máquina nova em apenas 3 minutos.*
@@ -22,7 +22,7 @@ Repositório mantido por [erickloyola](https://github.com/erickloyola/BlizzMod) 
 
 ---
 
-## ⚡ Como Jogar (Instalação Rápida no Linux)
+##  Como Jogar (Instalação Rápida no Linux)
 
 1. Nas propriedades do jogo na Steam, adicione em **Opções de Inicialização**:
    ```bash
@@ -36,7 +36,7 @@ Repositório mantido por [erickloyola](https://github.com/erickloyola/BlizzMod) 
 
 ---
 
-## 🛠️ Como Atualizar / Modificar o Código
+##  Como Atualizar / Modificar o Código
 
 Após fazer alterações nos arquivos de código C++:
 ```bash
@@ -46,7 +46,7 @@ O script fará o commit, envio para o GitHub, compilação em nuvem multi-core e
 
 ---
 
-## 🛡️ Notas sobre Easy Anti-Cheat (EAC/EOS)
+##  Notas sobre Easy Anti-Cheat (EAC/EOS)
 Caso necessite contornar validações do EOS, configure a variável de ambiente:
 ```bash
 EOS_USE_ANTICHEATCLIENTNULL=1
