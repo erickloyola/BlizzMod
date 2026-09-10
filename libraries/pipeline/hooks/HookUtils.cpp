@@ -160,9 +160,11 @@ namespace HookUtils {
     static Il2CppClass* FindClass(const Il2CppImage* image, const char* namespaze, const char* className) {
         if (!image || !className) return nullptr;
 
-        // 1. Try il2cpp_class_from_name safely
-        Il2CppClass* klass = SafeClassFromName(image, namespaze, className);
-        if (klass) return klass;
+        // 1. Try il2cpp_class_from_name safely if namespace is specified
+        if (namespaze && *namespaze) {
+            Il2CppClass* klass = SafeClassFromName(image, namespaze, className);
+            if (klass) return klass;
+        }
 
         // 2. Iterate all classes in image
         size_t numClasses = SafeImageGetClassCount(image);
@@ -172,10 +174,10 @@ namespace HookUtils {
             const Il2CppClass* k = SafeImageGetClass(image, i);
             if (!k) continue;
             const char* cName = SafeClassGetName(const_cast<Il2CppClass*>(k));
-            if (cName && strcmp(cName, className) == 0) {
+            if (cName && _stricmp(cName, className) == 0) {
                 if (namespaze && *namespaze) {
                     const char* cNs = SafeClassGetNamespace(const_cast<Il2CppClass*>(k));
-                    if (cNs && strcmp(cNs, namespaze) != 0) continue;
+                    if (cNs && _stricmp(cNs, namespaze) != 0) continue;
                 }
                 return const_cast<Il2CppClass*>(k);
             }
@@ -200,7 +202,7 @@ namespace HookUtils {
         while (const MethodInfo* m = SafeClassGetMethods(klass, &iter)) {
             if (++safetyCounter > 5000) break;
             const char* mName = SafeMethodGetName(m);
-            if (mName && strcmp(mName, methodName) == 0) {
+            if (mName && _stricmp(mName, methodName) == 0) {
                 int pCount = SafeMethodGetParamCount(m);
                 if (argsCount < 0 || pCount == argsCount) {
                     return m;

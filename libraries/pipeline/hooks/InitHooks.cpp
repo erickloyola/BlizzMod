@@ -8,12 +8,496 @@
 #include "DirectX.h"
 #include "pipeline/settings.h"
 #include <helpers.h>
+#include "pipeline/telemetry/TelemetryServer.h"
 
 #include "il2cpp-appdata.h" // For function hooks
 using namespace app;
 using namespace HookUtils;
 
+// === Dynamic Function Pointers for Safe Telemetry ===
+typedef float (*ResourceAttribute_GetFloat_t)(ResourceAttribute* __this, MethodInfo* method);
+typedef Health* (*UPC_GetHealth_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef Mana* (*UPC_GetMana_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef UltimatePlayerController* (*UPC_GetOpponent_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef Vector3 (*Transform_GetPos_t)(Transform* __this, MethodInfo* method);
+typedef float (*FastSafeFloat_GetValue_t)(FastSafeFloat* __this, MethodInfo* method);
+typedef bool (*SafeBool_GetValue_t)(SafeBool* __this, MethodInfo* method);
+typedef int32_t (*UPC_GetInt_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef bool (*UPC_GetBool_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef float (*UPC_GetFloat_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef bool (*BattleArbiter_IsFightInProgress_t)(MethodInfo* method);
+typedef Support* (*UPC_GetSupportAtr_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef ResourceAttribute* (*Support_GetResAttr_t)(Support* __this, MethodInfo* method);
+typedef bool (*UPC_GetIsSupportAttackLocked_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef ResourceAttribute* (*Health_GetResAttr_t)(Health* __this, MethodInfo* method);
+typedef ResourceAttribute* (*Mana_GetResAttr_t)(Mana* __this, MethodInfo* method);
+typedef bool (*Health_GetIsPlayer_t)(Health* __this, MethodInfo* method);
+typedef AIController* (*UPC_GetAIController_t)(UltimatePlayerController* __this, MethodInfo* method);
+typedef bool (*UPC_GetIsSupportPlayer_t)(UltimatePlayerController* __this, MethodInfo* method);
+
+static ResourceAttribute_GetFloat_t s_fnGetNormalizedAmount = nullptr;
+static ResourceAttribute_GetFloat_t s_fnGetAmount = nullptr;
+static ResourceAttribute_GetFloat_t s_fnGetMaxAmount = nullptr;
+static FastSafeFloat_GetValue_t s_fnFastSafeFloatGetValue = nullptr;
+static SafeBool_GetValue_t s_fnSafeBoolGetValue = nullptr;
+static UPC_GetHealth_t s_fnGetHealth = nullptr;
+static UPC_GetMana_t s_fnGetMana = nullptr;
+static UPC_GetOpponent_t s_fnGetOpponent = nullptr;
+static Transform_GetPos_t s_fnTransformGetPosition = nullptr;
+static UPC_GetInt_t s_fnGetID = nullptr;
+static UPC_GetBool_t s_fnGetAI = nullptr;
+static UPC_GetAIController_t s_fnGetAIController = nullptr;
+static Health_GetIsPlayer_t s_fnHealthGetIsPlayer = nullptr;
+static Health_GetResAttr_t s_fnHealthGetResAttr = nullptr;
+static Mana_GetResAttr_t s_fnManaGetResAttr = nullptr;
+static UPC_GetIsSupportPlayer_t s_fnIsSupportPlayer = nullptr;
+static UPC_GetBool_t s_fnIsStunned = nullptr;
+static UPC_GetBool_t s_fnIsHitStunned = nullptr;
+static UPC_GetBool_t s_fnIsBlocking = nullptr;
+static UPC_GetBool_t s_fnIsAttacking = nullptr;
+static UPC_GetBool_t s_fnIsSpecialAttacking = nullptr;
+static UPC_GetBool_t s_fnIsHeavyAttacking = nullptr;
+static UPC_GetBool_t s_fnIsDashing = nullptr;
+static UPC_GetBool_t s_fnIsDodging = nullptr;
+static UPC_GetBool_t s_fnIsHitReacting = nullptr;
+static UPC_GetFloat_t s_fnGetDistanceToOpponent = nullptr;
+static BattleArbiter_IsFightInProgress_t s_fnIsFightInProgress = nullptr;
+static UPC_GetSupportAtr_t s_fnGetSupportAtr = nullptr;
+static Support_GetResAttr_t s_fnGetSupportResourceAttr = nullptr;
+static UPC_GetIsSupportAttackLocked_t s_fnIsSupportAttackLocked = nullptr;
+
+static float SafeGetResourceAmount(ResourceAttribute* attr) {
+    if (!attr) return 0.0f;
+    __try {
+        if (s_fnGetAmount) {
+            return s_fnGetAmount(attr, nullptr);
+        }
+        if (attr->fields._amount && s_fnFastSafeFloatGetValue) {
+            return s_fnFastSafeFloatGetValue(attr->fields._amount, nullptr);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return 0.0f;
+}
+
+static float SafeGetResourceNormalized(ResourceAttribute* attr) {
+    if (!attr) return 100.0f;
+    __try {
+        if (s_fnGetNormalizedAmount) {
+            float norm = s_fnGetNormalizedAmount(attr, nullptr);
+            if (norm >= 0.0f && norm <= 1.05f) {
+                return norm * 100.0f;
+            }
+            if (norm > 1.05f && norm <= 100.5f) {
+                return norm;
+            }
+        }
+        float cur = SafeGetResourceAmount(attr);
+        float maxVal = 0.0f;
+        if (s_fnGetMaxAmount) {
+            maxVal = s_fnGetMaxAmount(attr, nullptr);
+        } else if (attr->fields._maxAmount && s_fnFastSafeFloatGetValue) {
+            maxVal = s_fnFastSafeFloatGetValue(attr->fields._maxAmount, nullptr);
+        }
+        if (maxVal > 0.001f) {
+            return (cur / maxVal) * 100.0f;
+        }
+        if (cur > 0.0f && cur <= 100.0f) {
+            return cur;
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return 100.0f;
+}
+
+static Health* SafeGetUPCHealth(UltimatePlayerController* upc) {
+    if (!upc) return nullptr;
+    __try {
+        if (s_fnGetHealth) {
+            Health* h = s_fnGetHealth(upc, nullptr);
+            if (h) return h;
+        }
+        if (upc->fields._health) {
+            return upc->fields._health;
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return nullptr;
+}
+
+static ResourceAttribute* SafeGetHealthAttr(UltimatePlayerController* upc) {
+    if (!upc) return nullptr;
+    __try {
+        Health* h = SafeGetUPCHealth(upc);
+        if (h) {
+            if (s_fnHealthGetResAttr) {
+                ResourceAttribute* res = s_fnHealthGetResAttr(h, nullptr);
+                if (res) return res;
+            }
+            if (h->fields._resourceAttribute_k__BackingField) {
+                return h->fields._resourceAttribute_k__BackingField;
+            }
+        }
+        if (upc->fields._attributes && upc->fields._attributes->fields._health) {
+            return upc->fields._attributes->fields._health;
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return nullptr;
+}
+
+static Mana* SafeGetUPCMana(UltimatePlayerController* upc) {
+    if (!upc) return nullptr;
+    __try {
+        if (s_fnGetMana) {
+            Mana* m = s_fnGetMana(upc, nullptr);
+            if (m) return m;
+        }
+        if (upc->fields._mana) {
+            return upc->fields._mana;
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return nullptr;
+}
+
+static ResourceAttribute* SafeGetManaAttr(UltimatePlayerController* upc) {
+    if (!upc) return nullptr;
+    __try {
+        Mana* m = SafeGetUPCMana(upc);
+        if (m) {
+            if (s_fnManaGetResAttr) {
+                ResourceAttribute* res = s_fnManaGetResAttr(m, nullptr);
+                if (res) return res;
+            }
+            if (m->fields._resourceAttribute_k__BackingField) {
+                return m->fields._resourceAttribute_k__BackingField;
+            }
+        }
+        if (upc->fields._attributes && upc->fields._attributes->fields._mana) {
+            return upc->fields._attributes->fields._mana;
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return nullptr;
+}
+
+static Vector3 SafeGetUPCPosition(UltimatePlayerController* upc) {
+    Vector3 zero = {0.0f, 0.0f, 0.0f};
+    if (!upc) return zero;
+    __try {
+        if (upc->fields._CachedTransform_k__BackingField && s_fnTransformGetPosition) {
+            return s_fnTransformGetPosition(upc->fields._CachedTransform_k__BackingField, nullptr);
+        }
+        if (UltimatePlayerController_GetPosition) {
+            return UltimatePlayerController_GetPosition(upc, nullptr);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return zero;
+}
+
+static float SafeGetManaBars(ResourceAttribute* attr) {
+    if (!attr) return 0.0f;
+    __try {
+        if (s_fnGetNormalizedAmount) {
+            float norm = s_fnGetNormalizedAmount(attr, nullptr);
+            if (norm >= 0.0f && norm <= 1.05f) {
+                return norm * 3.0f;
+            }
+            if (norm > 1.05f && norm <= 100.5f) {
+                return (norm / 100.0f) * 3.0f;
+            }
+        }
+        float cur = SafeGetResourceAmount(attr);
+        float maxVal = 0.0f;
+        if (s_fnGetMaxAmount) {
+            maxVal = s_fnGetMaxAmount(attr, nullptr);
+        } else if (attr->fields._maxAmount && s_fnFastSafeFloatGetValue) {
+            maxVal = s_fnFastSafeFloatGetValue(attr->fields._maxAmount, nullptr);
+        }
+        if (maxVal > 0.001f) {
+            return (cur / maxVal) * 3.0f;
+        }
+        if (cur > 3.0f) {
+            return (cur / 100.0f) * 3.0f;
+        }
+        return cur;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return 0.0f;
+}
+
+static bool SafeIsSupportPlayer(UltimatePlayerController* upc) {
+    if (!upc) return false;
+    __try {
+        if (s_fnIsSupportPlayer) {
+            return s_fnIsSupportPlayer(upc, nullptr);
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return false;
+}
+
+static bool SafeCheckIsPlayer(UltimatePlayerController* upc) {
+    if (!upc) return false;
+    __try {
+        // 1. Health_get_IsPlayer - veredito oficial do motor Unity/MCoC
+        Health* h = SafeGetUPCHealth(upc);
+        if (h) {
+            if (s_fnHealthGetIsPlayer) {
+                return s_fnHealthGetIsPlayer(h, nullptr);
+            }
+            if (s_fnSafeBoolGetValue) {
+                return s_fnSafeBoolGetValue(&h->fields._isPlayer, nullptr);
+            }
+        }
+
+        // 2. Checagem de AIController: o oponente SEMPRE possui _aiController instanciado, o Player humano NUNCA
+        if (s_fnGetAIController) {
+            AIController* ai = s_fnGetAIController(upc, nullptr);
+            if (ai != nullptr) return false;
+        }
+        if (upc->fields._aiController != nullptr) {
+            return false;
+        }
+
+        // 3. Checagem do getter get_AI() ou campo _isAI
+        if (s_fnGetAI) {
+            return !s_fnGetAI(upc, nullptr);
+        }
+        if (upc->fields._isAI) {
+            return false;
+        }
+
+        // 4. Checagem de _inputEnabled: Player humano aceita inputs locais
+        if (upc->fields._inputEnabled) {
+            return true;
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return false;
+}
+
+static bool SafeIsStunned(UltimatePlayerController* upc) {
+    if (!upc) return false;
+    __try {
+        if (s_fnIsStunned && s_fnIsStunned(upc, nullptr)) return true;
+        if (s_fnIsHitStunned && s_fnIsHitStunned(upc, nullptr)) return true;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return false;
+}
+
+static bool SafeIsBlocking(UltimatePlayerController* upc) {
+    if (!upc) return false;
+    __try {
+        if (s_fnIsBlocking && s_fnIsBlocking(upc, nullptr)) return true;
+        if (upc->fields._blocksRequestedFlags != 0) return true;
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return false;
+}
+
+static bool SafeGetStrikerReady(UltimatePlayerController* upc) {
+    if (!upc) return false;
+    __try {
+        if (s_fnIsSupportAttackLocked && s_fnIsSupportAttackLocked(upc, nullptr)) {
+            return false;
+        }
+        if (s_fnGetSupportAtr) {
+            Support* sup = s_fnGetSupportAtr(upc, nullptr);
+            if (sup) {
+                ResourceAttribute* res = nullptr;
+                if (s_fnGetSupportResourceAttr) res = s_fnGetSupportResourceAttr(sup, nullptr);
+                if (!res) res = sup->fields._ResourceAttribute_k__BackingField;
+                if (res) {
+                    float norm = SafeGetResourceNormalized(res);
+                    return norm >= 99.0f;
+                }
+            }
+        }
+        if (upc->fields._support) {
+            Support* sup = upc->fields._support;
+            ResourceAttribute* res = nullptr;
+            if (s_fnGetSupportResourceAttr) res = s_fnGetSupportResourceAttr(sup, nullptr);
+            if (!res) res = sup->fields._ResourceAttribute_k__BackingField;
+            if (res) {
+                float norm = SafeGetResourceNormalized(res);
+                return norm >= 99.0f;
+            }
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    return false;
+}
+
+static const char* SafeGetStateName(UltimatePlayerController* upc, int& outStateId) {
+    if (!upc) {
+        outStateId = 0;
+        return "Idle";
+    }
+    __try {
+        if (SafeIsStunned(upc)) {
+            outStateId = 8;
+            return "Stun";
+        }
+        if (SafeIsBlocking(upc)) {
+            outStateId = 1;
+            return "Block";
+        }
+        if (s_fnIsSpecialAttacking && s_fnIsSpecialAttacking(upc, nullptr)) {
+            outStateId = 9;
+            return "Special";
+        }
+        if (s_fnIsHeavyAttacking && s_fnIsHeavyAttacking(upc, nullptr)) {
+            outStateId = 5;
+            return "Heavy";
+        }
+        if (s_fnIsAttacking && s_fnIsAttacking(upc, nullptr)) {
+            outStateId = 4;
+            return "Attack";
+        }
+        if (s_fnIsDashing && s_fnIsDashing(upc, nullptr)) {
+            outStateId = 2;
+            return "Dash";
+        }
+        if (s_fnIsDodging && s_fnIsDodging(upc, nullptr)) {
+            outStateId = 3;
+            return "Dodge";
+        }
+        if (s_fnIsHitReacting && s_fnIsHitReacting(upc, nullptr)) {
+            outStateId = 7;
+            return "HitReact";
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+    outStateId = 0;
+    return "Idle";
+}
+
 // === Function Hook Definitions ===
+
+void dUltimatePlayerController_UpdateMovement(UltimatePlayerController* __this, float deltaTime, MethodInfo* method) {
+    UltimatePlayerController_UpdateMovement(__this, deltaTime, method);
+    if (!__this) return;
+
+    __try {
+        // Ignora striker / relic / support player para não poluir telemetria dos combatentes principais
+        if (SafeIsSupportPlayer(__this)) {
+            return;
+        }
+
+        static UltimatePlayerController* s_cachedPlayer = nullptr;
+        static UltimatePlayerController* s_cachedOpp = nullptr;
+
+        bool isPl = SafeCheckIsPlayer(__this);
+
+        UltimatePlayerController* other = nullptr;
+        if (s_fnGetOpponent) {
+            other = s_fnGetOpponent(__this, nullptr);
+        }
+        if (!other) {
+            other = __this->fields._Opponent_k__BackingField;
+        }
+
+        if (isPl) {
+            s_cachedPlayer = __this;
+            if (other && other != __this) {
+                s_cachedOpp = other;
+            }
+        } else {
+            s_cachedOpp = __this;
+            if (other && other != __this) {
+                s_cachedPlayer = other;
+            }
+        }
+
+        // Se ambos apontarem para o mesmo objeto por anomalia, usa 'other' para desempatar
+        if (s_cachedPlayer && s_cachedOpp && s_cachedPlayer == s_cachedOpp) {
+            if (isPl) {
+                s_cachedOpp = other;
+            } else {
+                s_cachedPlayer = other;
+            }
+        }
+
+        UltimatePlayerController* player = s_cachedPlayer;
+        UltimatePlayerController* opp = s_cachedOpp;
+
+        // 1. Processa dados do PLAYER
+        if (player) {
+            Vector3 pPos = SafeGetUPCPosition(player);
+            TelemetryServer::SetPlayerPos(pPos.x, pPos.y, pPos.z);
+
+            ResourceAttribute* pHpAttr = SafeGetHealthAttr(player);
+            if (pHpAttr) {
+                TelemetryServer::SetPlayerHealth(SafeGetResourceNormalized(pHpAttr));
+            }
+
+            ResourceAttribute* pManaAttr = SafeGetManaAttr(player);
+            if (pManaAttr) {
+                TelemetryServer::SetPlayerMana(SafeGetManaBars(pManaAttr));
+            }
+
+            bool pBlocking = SafeIsBlocking(player);
+            TelemetryServer::SetPlayerBlocking(pBlocking);
+
+            bool pStun = SafeIsStunned(player);
+            TelemetryServer::SetPlayerStunned(pStun);
+
+            bool pStriker = SafeGetStrikerReady(player);
+            TelemetryServer::SetPlayerStrikerReady(pStriker);
+
+            int pStateId = 0;
+            const char* pStateName = SafeGetStateName(player, pStateId);
+            TelemetryServer::SetPlayerState(pStateId, pStateName);
+        }
+
+        // 2. Processa dados do OPONENTE
+        if (opp) {
+            Vector3 oPos = SafeGetUPCPosition(opp);
+            TelemetryServer::SetOpponentPos(oPos.x, oPos.y, oPos.z);
+
+            ResourceAttribute* oHpAttr = SafeGetHealthAttr(opp);
+            if (oHpAttr) {
+                TelemetryServer::SetOpponentHealth(SafeGetResourceNormalized(oHpAttr));
+            }
+
+            ResourceAttribute* oManaAttr = SafeGetManaAttr(opp);
+            if (oManaAttr) {
+                TelemetryServer::SetOpponentMana(SafeGetManaBars(oManaAttr));
+            }
+
+            bool oBlocking = SafeIsBlocking(opp);
+            TelemetryServer::SetOpponentBlocking(oBlocking);
+
+            bool oStun = SafeIsStunned(opp);
+            TelemetryServer::SetOpponentStunned(oStun);
+
+            int oStateId = 0;
+            const char* oStateName = SafeGetStateName(opp, oStateId);
+            TelemetryServer::SetOpponentState(oStateId, oStateName);
+        }
+
+        // 3. Distância oficial do motor
+        if (player && s_fnGetDistanceToOpponent) {
+            float dist = s_fnGetDistanceToOpponent(player, nullptr);
+            if (dist > 0.001f) {
+                TelemetryServer::SetDistance(dist);
+            }
+        } else if (opp && s_fnGetDistanceToOpponent) {
+            float dist = s_fnGetDistanceToOpponent(opp, nullptr);
+            if (dist > 0.001f) {
+                TelemetryServer::SetDistance(dist);
+            }
+        }
+
+        bool inFight = true;
+        if (player && opp) {
+            ResourceAttribute* pHpAttr = SafeGetHealthAttr(player);
+            ResourceAttribute* oHpAttr = SafeGetHealthAttr(opp);
+            if (pHpAttr && oHpAttr) {
+                float pHp = SafeGetResourceNormalized(pHpAttr);
+                float oHp = SafeGetResourceNormalized(oHpAttr);
+                if (pHp <= 0.05f || oHp <= 0.05f) {
+                    inFight = false;
+                }
+            }
+        }
+        TelemetryServer::SetInFight(inFight);
+
+        // 4. Envia o pacote de telemetria
+        // TelemetryServer::SendFrame() já possui controle interno de taxa (>= 15ms)
+        TelemetryServer::SendFrame();
+    } __except (EXCEPTION_EXECUTE_HANDLER) {}
+}
 
 float dCalculateBaseDamage(PlayerAttributes* __this, UltimatePlayerController_AttackLevel__Enum attackLevel, MethodInfo* method) {
     float result = PlayerAttributes_CalculateBaseDamage(__this, attackLevel, method);
@@ -24,7 +508,7 @@ float dCalculateBaseDamage(PlayerAttributes* __this, UltimatePlayerController_At
 float dCalculateCritChance(PlayerAttributes* __this, float oppChallengeRating, MethodInfo* method) {
     float result = PlayerAttributes_CalculateCritChance(__this, oppChallengeRating, method);
     std::cout << "[HOOK] PlayerAttributes_CalculateCritChance result: " << result << std::endl;
-    return 1.0f;
+    return result;
 }
 
 float dget_CritRating(PlayerAttributes* __this, MethodInfo* method) {
@@ -61,7 +545,7 @@ StatAttribute* dGetStatAttribute(PlayerAttributes* __this, String* attributeName
 float dget_Armor(PlayerAttributes* __this, MethodInfo* method) {
     float result = PlayerAttributes_get_Armor(__this, method);
     std::cout << "[HOOK] PlayerAttributes_get_Armor result: " << result << std::endl;
-    return result * 10.0f;
+    return result;
 }
 
 bool dDamageResolver_CanPerfectBlock(PlayerAttributes* __this, MethodInfo* method) {
@@ -148,7 +632,7 @@ float dCalculateBlockProficiencyPercentage(PlayerAttributes* __this, float block
 float dCalculateBaseManaGain(PlayerAttributes* __this, UltimatePlayerController_AttackLevel__Enum attackLevel, MethodInfo* method) {
     float result = PlayerAttributes_CalculateBaseManaGain(__this, attackLevel, method);
     std::cout << "[HOOK] BaseManaGain result: " << result << std::endl;
-    return result * 2.0f;
+    return result;
 }
 
 float dCalculateBaseSupportManaGain(PlayerAttributes* __this, UltimatePlayerController_AttackLevel__Enum attackLevel, MethodInfo* method) {
@@ -566,10 +1050,96 @@ void DetourInitilization() {
         } \
     } while (0)
 
+    TelemetryServer::Init();
+
+    s_fnGetNormalizedAmount = (ResourceAttribute_GetFloat_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "ResourceAttribute", "get_NormalizedAmount", 0);
+    s_fnGetAmount = (ResourceAttribute_GetFloat_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "ResourceAttribute", "get_Amount", 0);
+    s_fnGetMaxAmount = (ResourceAttribute_GetFloat_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "ResourceAttribute", "get_MaxAmount", 0);
+    s_fnFastSafeFloatGetValue = (FastSafeFloat_GetValue_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "FastSafeFloat", "get_Value", 0);
+    s_fnGetHealth = (UPC_GetHealth_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_Health", 0);
+    s_fnGetMana = (UPC_GetMana_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_Mana", 0);
+    s_fnGetOpponent = (UPC_GetOpponent_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_Opponent", 0);
+    s_fnTransformGetPosition = (Transform_GetPos_t)HookUtils::ResolveMethod("UnityEngine.CoreModule.dll", nullptr, "Transform", "get_position", 0);
+    s_fnSafeBoolGetValue = (SafeBool_GetValue_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "SafeBool", "get_Value", 0);
+    s_fnGetID = (UPC_GetInt_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_ID", 0);
+    s_fnGetAI = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_AI", 0);
+    s_fnGetAIController = (UPC_GetAIController_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_AIController", 0);
+    s_fnHealthGetIsPlayer = (Health_GetIsPlayer_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "Health", "get_IsPlayer", 0);
+    s_fnHealthGetResAttr = (Health_GetResAttr_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "Health", "get_resourceAttribute", 0);
+    s_fnManaGetResAttr = (Mana_GetResAttr_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "Mana", "get_resourceAttribute", 0);
+    s_fnIsSupportPlayer = (UPC_GetIsSupportPlayer_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_IsSupportPlayer", 0);
+    s_fnIsStunned = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsStunned", 0);
+    s_fnIsHitStunned = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsHitStunned", 0);
+    s_fnIsBlocking = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsBlockingOrBlockReacting", 0);
+    s_fnIsAttacking = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsAttacking", 0);
+    s_fnIsSpecialAttacking = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsSpecialAttacking", 0);
+    s_fnIsHeavyAttacking = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsHeavyAttacking", 0);
+    s_fnIsDashing = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsDashing", 0);
+    s_fnIsDodging = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsDodging", 0);
+    s_fnIsHitReacting = (UPC_GetBool_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "IsHitReacting", 0);
+    s_fnGetDistanceToOpponent = (UPC_GetFloat_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_DistanceToOpponent", 0);
+    s_fnIsFightInProgress = (BattleArbiter_IsFightInProgress_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "BattleArbiter", "IsFightInProgress", 0);
+    s_fnGetSupportAtr = (UPC_GetSupportAtr_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_SupportAtr", 0);
+    s_fnGetSupportResourceAttr = (Support_GetResAttr_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "Support", "get_ResourceAttribute", 0);
+    s_fnIsSupportAttackLocked = (UPC_GetIsSupportAttackLocked_t)HookUtils::ResolveMethod("Assembly-CSharp.dll", nullptr, "UltimatePlayerController", "get_IsSupportAttackLocked", 0);
+
+    if (!s_fnGetNormalizedAmount) s_fnGetNormalizedAmount = ResourceAttribute_get_NormalizedAmount;
+    if (!s_fnGetAmount) s_fnGetAmount = ResourceAttribute_get_Amount;
+    if (!s_fnGetMaxAmount) s_fnGetMaxAmount = ResourceAttribute_get_MaxAmount;
+    if (!s_fnFastSafeFloatGetValue) s_fnFastSafeFloatGetValue = FastSafeFloat_get_Value;
+    if (!s_fnSafeBoolGetValue) s_fnSafeBoolGetValue = SafeBool_get_Value;
+    if (!s_fnGetHealth) s_fnGetHealth = UltimatePlayerController_get_Health;
+    if (!s_fnGetMana) s_fnGetMana = UltimatePlayerController_get_Mana;
+    if (!s_fnGetOpponent) s_fnGetOpponent = UltimatePlayerController_get_Opponent;
+    if (!s_fnTransformGetPosition) s_fnTransformGetPosition = Transform_get_position;
+    if (!s_fnGetID) s_fnGetID = UltimatePlayerController_get_ID;
+    if (!s_fnGetAI) s_fnGetAI = UltimatePlayerController_get_AI;
+    if (!s_fnGetAIController) s_fnGetAIController = UltimatePlayerController_get_AIController;
+    if (!s_fnHealthGetIsPlayer) s_fnHealthGetIsPlayer = Health_get_IsPlayer;
+    if (!s_fnHealthGetResAttr) s_fnHealthGetResAttr = Health_get_resourceAttribute;
+    if (!s_fnManaGetResAttr) s_fnManaGetResAttr = Mana_get_resourceAttribute;
+    if (!s_fnIsSupportPlayer) s_fnIsSupportPlayer = UltimatePlayerController_get_IsSupportPlayer;
+    if (!s_fnIsStunned) s_fnIsStunned = UltimatePlayerController_IsStunned;
+    if (!s_fnIsHitStunned) s_fnIsHitStunned = UltimatePlayerController_IsHitStunned;
+    if (!s_fnIsBlocking) s_fnIsBlocking = UltimatePlayerController_IsBlockingOrBlockReacting;
+    if (!s_fnIsAttacking) s_fnIsAttacking = UltimatePlayerController_IsAttacking;
+    if (!s_fnIsSpecialAttacking) s_fnIsSpecialAttacking = UltimatePlayerController_IsSpecialAttacking;
+    if (!s_fnIsHeavyAttacking) s_fnIsHeavyAttacking = UltimatePlayerController_IsHeavyAttacking;
+    if (!s_fnIsDashing) s_fnIsDashing = UltimatePlayerController_IsDashing;
+    if (!s_fnIsDodging) s_fnIsDodging = UltimatePlayerController_IsDodging;
+    if (!s_fnIsHitReacting) s_fnIsHitReacting = UltimatePlayerController_IsHitReacting;
+    if (!s_fnGetDistanceToOpponent) s_fnGetDistanceToOpponent = UltimatePlayerController_get_DistanceToOpponent;
+    if (!s_fnIsFightInProgress) s_fnIsFightInProgress = BattleArbiter_IsFightInProgress;
+    if (!s_fnGetSupportAtr) s_fnGetSupportAtr = UltimatePlayerController_get_SupportAtr;
+    if (!s_fnGetSupportResourceAttr) s_fnGetSupportResourceAttr = Support_get_ResourceAttribute;
+    if (!s_fnIsSupportAttackLocked) s_fnIsSupportAttackLocked = UltimatePlayerController_get_IsSupportAttackLocked;
+
+    std::cout << "[TelemetryServer] Resolucoes de Funcao:" << std::endl;
+    std::cout << "  - GetNormalizedAmount: " << (void*)s_fnGetNormalizedAmount << std::endl;
+    std::cout << "  - GetAmount:           " << (void*)s_fnGetAmount << std::endl;
+    std::cout << "  - GetMaxAmount:        " << (void*)s_fnGetMaxAmount << std::endl;
+    std::cout << "  - FastSafeFloatValue:  " << (void*)s_fnFastSafeFloatGetValue << std::endl;
+    std::cout << "  - SafeBoolGetValue:    " << (void*)s_fnSafeBoolGetValue << std::endl;
+    std::cout << "  - GetHealth:           " << (void*)s_fnGetHealth << std::endl;
+    std::cout << "  - GetMana:             " << (void*)s_fnGetMana << std::endl;
+    std::cout << "  - GetOpponent:         " << (void*)s_fnGetOpponent << std::endl;
+    std::cout << "  - TransformGetPos:     " << (void*)s_fnTransformGetPosition << std::endl;
+    std::cout << "  - GetID:               " << (void*)s_fnGetID << std::endl;
+    std::cout << "  - GetAI:               " << (void*)s_fnGetAI << std::endl;
+    std::cout << "  - GetAIController:     " << (void*)s_fnGetAIController << std::endl;
+    std::cout << "  - HealthGetIsPlayer:   " << (void*)s_fnHealthGetIsPlayer << std::endl;
+    std::cout << "  - IsSupportPlayer:     " << (void*)s_fnIsSupportPlayer << std::endl;
+    std::cout << "  - IsStunned:           " << (void*)s_fnIsStunned << std::endl;
+    std::cout << "  - IsBlocking:          " << (void*)s_fnIsBlocking << std::endl;
+    std::cout << "  - DistanceToOpponent:  " << (void*)s_fnGetDistanceToOpponent << std::endl;
+    std::cout << "  - IsFightInProgress:   " << (void*)s_fnIsFightInProgress << std::endl;
+    std::cout << "  - GetSupportAtr:       " << (void*)s_fnGetSupportAtr << std::endl;
+
     HOOK_METHOD_SAFE(PlayerAttributes_CalculateBaseDamage, dCalculateBaseDamage, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateBaseDamage", 1);
     HOOK_METHOD_SAFE(PlayerAttributes_CalculateCritChance, dCalculateCritChance, "Assembly-CSharp.dll", "", "PlayerAttributes", "CalculateCritChance", 1);
     HOOK_METHOD_SAFE(PlayerAttributes_get_CritRating, dget_CritRating, "Assembly-CSharp.dll", "", "PlayerAttributes", "get_CritRating", 0);
     HOOK_METHOD_SAFE(UltimatePlayerController_GetPosition, dUltimatePlayerController_GetPosition, "Assembly-CSharp.dll", "", "UltimatePlayerController", "GetPosition", 0);
+    HOOK_METHOD_SAFE(UltimatePlayerController_UpdateMovement, dUltimatePlayerController_UpdateMovement, "Assembly-CSharp.dll", "", "UltimatePlayerController", "UpdateMovement", 1);
     HOOK_METHOD_SAFE(PlayerAttributes_Init, dInit, "Assembly-CSharp.dll", "", "PlayerAttributes", "Init", 4);
     HOOK_METHOD_SAFE(PlayerAttributes_GetStatAttribute, dGetStatAttribute, "Assembly-CSharp.dll", "", "PlayerAttributes", "GetStatAttribute", 1);
     HOOK_METHOD_SAFE(PlayerAttributes_get_Armor, dget_Armor, "Assembly-CSharp.dll", "", "PlayerAttributes", "get_Armor", 0);
@@ -662,6 +1232,7 @@ void DetourUninitialization() {
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_CalculateCritChance), dCalculateCritChance, "PlayerAttributes_CalculateCritChance");
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_get_CritRating), dget_CritRating, "PlayerAttributes_get_CritRating");
     UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_GetPosition), dUltimatePlayerController_GetPosition, "UltimatePlayerController_GetPosition");
+    UnhookFunction(reinterpret_cast<PVOID*>(&UltimatePlayerController_UpdateMovement), dUltimatePlayerController_UpdateMovement, "UltimatePlayerController_UpdateMovement");
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_Init), dInit, "PlayerAttributes_Init");
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_GetStatAttribute), dGetStatAttribute, "PlayerAttributes_GetStatAttribute");
     UnhookFunction(reinterpret_cast<PVOID*>(&PlayerAttributes_get_Armor), dget_Armor, "PlayerAttributes_get_Armor");
@@ -743,6 +1314,7 @@ void DetourUninitialization() {
     UnhookFunction(reinterpret_cast<PVOID*>(&DraftBuffInfoPanel_SetSplitView), dSetSplitView, "DraftBuffInfoPanel_SetSplitView");
 
     if (DetourTransactionCommit() == NO_ERROR) {
+        TelemetryServer::Shutdown();
         DirectX::Shutdown();
     }
 }
